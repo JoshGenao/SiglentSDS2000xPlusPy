@@ -12,7 +12,6 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         self.serial = idn[2]
         self.firmware = idn[3]
 
-
     def query(self, message, *args, **kwargs):
         """
         Write a message to the scope and read back the answer.
@@ -30,6 +29,41 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         """
         return self.query("*IDN?")
     
+    @property
+    def trigger_status(self):
+        """The command query returns the current state of the trigger.
+
+        :return: str
+                    Returns either "Arm", "Ready", "Auto", "Trig'd", "Stop", "Roll"
+        """
+        return self.query(":TRIGger:STATus?")
+    
+    @property
+    def waveform_preamble(self):
+        """The query returns the parameters of the source using by the command 
+        :WAVeform:SOURce.
+        """
+        return self.query(":WAVeform:PREamble?")
+    
+    @property
+    def timebase_scale(self):
+        """The query returns the current horizontal scale setting in seconds per 
+        division for the main window.
+
+        :return: float
+
+        """
+        return float(self.query(":TIMebase:SCALe?"))
+    
+    @timebase_scale.setter
+    def timebase_scale(self, new_timebase):
+        """The command sets the horizontal scale per division for the main window.
+
+        :param new_timebase: Value to set the horizontal timebase
+        """
+        self.write(":TIMebase:SCALe {}".format(new_timebase))
+
+    
     def autosetup(self):
         """ This command attempts to automatically adjust the trigger, vertical, and 
         horizontal controls of the oscilloscope to deliver a usable display of the 
@@ -41,7 +75,9 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         return self.write(":AUToset")
     
     def set_single_trigger(self):
-        """The backlight of SINGLE key lights up, the oscilloscope enters the 
+        """The command sets the mode of the trigger.
+
+        The backlight of SINGLE key lights up, the oscilloscope enters the 
         waiting trigger state and begins to search for the trigger signal that meets 
         the conditions. If the trigger signal is satisfied, the running state shows 
         Trig'd, and the interface shows stable waveform. Then, the oscilloscope stops 
@@ -54,7 +90,9 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         return self.write(":TRIGger:MODE SINGle")
     
     def set_normal_trigger(self):
-        """The oscilloscope enters the wait trigger state and begins to search for 
+        """The command sets the mode of the trigger.
+        
+        The oscilloscope enters the wait trigger state and begins to search for 
         trigger signals that meet the conditions. If the trigger signal is satisfied, 
         the running state shows Trig'd, and the interface shows stable waveform. 
         Otherwise, the running state shows Ready, and the interface displays the last 
@@ -66,7 +104,9 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         return self.write(":TRIGger:MODE NORMal")
     
     def set_auto_trigger(self):
-        """The oscilloscope begins to search for the trigger signal that meets the 
+        """The command sets the mode of the trigger.
+        
+        The oscilloscope begins to search for the trigger signal that meets the 
         conditions. If the trigger signal is satisfied, the running state on the top 
         left corner of the user interface shows Trig'd, and the interface shows stable 
         waveform. Otherwise, the running state always shows Auto, and the interface 
@@ -77,12 +117,22 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         return self.write(":TRIGger:MODE AUTO")
     
     def set_force_trigger(self):
-        """Force to acquire a frame regardless of whether the input signal meets the 
+        """The command sets the mode of the trigger.
+        
+        Force to acquire a frame regardless of whether the input signal meets the 
         trigger conditions or not.
 
         :return: Nothing
         """
         return self.write(":TRIGger:MODE FTRIG")
+    
+    def get_trigger_mode(self):
+        """The query returns the current mode of trigger.
+
+        :return: str
+                    Returns either "SINGle", "NORMal", "AUTO", "FTRIG"
+        """
+        return self.query(":TRIGger:MODE?")
 
     def default_setup(self):
         pass
