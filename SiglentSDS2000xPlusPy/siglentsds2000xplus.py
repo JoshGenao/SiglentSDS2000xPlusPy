@@ -11,6 +11,8 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         self.product = idn[1]
         self.serial = idn[2]
         self.firmware = idn[3]
+        self.memory_depth_values = (10000, 100000, 1000000, 10000000, 100000000,
+                                    20000, 200000, 2000000, 20000000, 200000000)
 
     def query(self, message, *args, **kwargs):
         """
@@ -63,6 +65,19 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         """
         self.write(":TIMebase:SCALe {}".format(new_timebase))
 
+    @property
+    def memory_depth(self):
+        """The query returns the maximum memory depth.
+
+        :return: int
+                    Returns the maximum memory depth
+        """
+        return int(self.query(":ACQuire:MDEPth?"))
+    
+    @memory_depth.setter
+    def memory_depth(self, mdepth: int):
+        mdepth = min(self.memory_depth_values, key=lambda x:abs(x-mdepth))
+        self.write(":ACQuire:MDEPth {}".format(mdepth))
     
     def autosetup(self):
         """ This command attempts to automatically adjust the trigger, vertical, and 
@@ -72,7 +87,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
 
         :return: Nothing
         """
-        return self.write(":AUToset")
+        self.write(":AUToset")
     
     def set_single_trigger(self):
         """The command sets the mode of the trigger.
@@ -87,7 +102,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
 
         :return: Nothing
         """
-        return self.write(":TRIGger:MODE SINGle")
+        self.write(":TRIGger:MODE SINGle")
     
     def set_normal_trigger(self):
         """The command sets the mode of the trigger.
@@ -101,7 +116,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
 
         :return: Nothing
         """
-        return self.write(":TRIGger:MODE NORMal")
+        self.write(":TRIGger:MODE NORMal")
     
     def set_auto_trigger(self):
         """The command sets the mode of the trigger.
@@ -114,7 +129,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
 
         :return: Nothing
         """
-        return self.write(":TRIGger:MODE AUTO")
+        self.write(":TRIGger:MODE AUTO")
     
     def set_force_trigger(self):
         """The command sets the mode of the trigger.
@@ -124,7 +139,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
 
         :return: Nothing
         """
-        return self.write(":TRIGger:MODE FTRIG")
+        self.write(":TRIGger:MODE FTRIG")
     
     def get_trigger_mode(self):
         """The query returns the current mode of trigger.
@@ -146,7 +161,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
 
         visible = "ON" if visible else "OFF"
 
-        return self.write(":CHANnel{}:VISible {}".format(str(channel), visible))
+        self.write(":CHANnel{}:VISible {}".format(str(channel), visible))
 
     def is_channel_visible(self, channel : int):
         """The query returns whether the waveform display function of the selected 
