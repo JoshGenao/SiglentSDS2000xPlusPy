@@ -46,7 +46,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         return self.query(":WAVeform:PREamble?")
     
     @property
-    def timebase_scale(self):
+    def timebase_scale(self) -> float:
         """The query returns the current horizontal scale setting in seconds per 
         division for the main window.
 
@@ -133,6 +133,34 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
                     Returns either "SINGle", "NORMal", "AUTO", "FTRIG"
         """
         return self.query(":TRIGger:MODE?")
+
+    def channel_visibile(self, channel : int, visible : bool = True):
+        """The command is used to whether display the waveform of the specified 
+        channel or not.
+
+        :param channel: 1 to (# analog channels)
+        :param visible: Diplay state, defaults to True
+        """
+        assert 1 <= channel <= 4    # probably need to change to specific 
+                                    # oscope
+
+        visible = "ON" if visible else "OFF"
+
+        return self.write(":CHANnel{}:VISible {}".format(str(channel), visible))
+
+    def is_channel_visible(self, channel : int):
+        """The query returns whether the waveform display function of the selected 
+        channel is on or off.
+
+        :param channel: 1 to (# analog channels)
+        :return: bool
+        """
+        assert 1 <= channel <= 4    # probably need to change to specific 
+                                    # oscope
+
+        resp = self.query("CHAN{}:VIS?".format(str(channel)))
+                          
+        return ( True if resp == "ON" else False )
 
     def default_setup(self):
         pass

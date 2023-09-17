@@ -33,9 +33,41 @@ class TestSDS2000X(unittest.TestCase):
         self.scope.set_force_trigger()
         self.assertEqual(self.scope.get_trigger_mode(), 'FTRIG')
     
-    def test_waveform_preamble(self):
-        pass
+    def test_channel_visibility_off(self):
+        self.scope.channel_visibile(1, False)
+        self.assertEqual(self.scope.is_channel_visible(1), False)
 
+        self.scope.channel_visibile(2, False)
+        self.assertEqual(self.scope.is_channel_visible(2), False)
+        
+        self.scope.channel_visibile(3, False)
+        self.assertEqual(self.scope.is_channel_visible(3), False)
+        
+        self.scope.channel_visibile(4, False)
+        self.assertEqual(self.scope.is_channel_visible(4), False)
+
+    def test_channel_visibility_on(self):
+        self.scope.channel_visibile(1, True)
+        self.assertEqual(self.scope.is_channel_visible(1), True)
+
+        self.scope.channel_visibile(2, True)
+        self.assertEqual(self.scope.is_channel_visible(2), True)
+        
+        self.scope.channel_visibile(3, True)
+        self.assertEqual(self.scope.is_channel_visible(3), True)
+        
+        self.scope.channel_visibile(4, True)
+        self.assertEqual(self.scope.is_channel_visible(4), True)
+
+    def test_channel_visibility_out_of_range(self):
+        with self.assertRaises(AssertionError):
+            self.scope.channel_visibile(0, True)
+        
+        with self.assertRaises(AssertionError):
+            self.scope.channel_visibile(5, True)
+
+        with self.assertRaises(TypeError):
+            self.scope.channel_visibile("c1", True)
 
 if __name__ == '__main__':
     unittest.main()
