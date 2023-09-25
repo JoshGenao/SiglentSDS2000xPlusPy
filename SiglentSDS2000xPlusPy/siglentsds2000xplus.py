@@ -1,5 +1,11 @@
 import time
 import vxi11
+from enum import Enum
+
+class SiglentWaveformWidth(Enum):
+    BYTE = "BYTE"
+    WORD = "WORD"
+
 
 class SiglentSDS2000XPlus(vxi11.Instrument):
     _name = "Siglent SDS2000X Plus"
@@ -66,7 +72,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         self.write(":TIMebase:SCALe {}".format(new_timebase))
 
     @property
-    def memory_depth(self):
+    def memory_depth(self) -> int:
         """The query returns the maximum memory depth.
 
         :return: int
@@ -176,6 +182,34 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         resp = self.query("CHAN{}:VIS?".format(str(channel)))
                           
         return ( True if resp == "ON" else False )
+        
+    def set_waveform_format_width(self, waveform_width : SiglentWaveformWidth):
+        """The command sets the current output format for the transfer of waveform
+        data.
+
+        :param waveform_width:  SiglentWaveformWidth.BYTE or SiglentWaveformWidth.WORD
+        """
+        assert isinstance(waveform_width, SiglentWaveformWidth)
+
+        self.write(":WAVeform:WIDTh {}".format(waveform_width.value))
+
+    def get_waveform_format_width(self) -> SiglentWaveformWidth:
+        """The query returns the current output format for the transfer of waveform 
+        data.
+        """
+        resp = self.query(":WAVeform:WIDTh?")
+
+        match resp:
+            case "BYTE":
+                return SiglentWaveformWidth.BYTE
+            case "WORD":
+                return SiglentWaveformWidth.WORD
+
+    def arm(self):
+        '''Sets up the acquisition signal to single
+        '''
+        self.set_single_trigger()
+
 
     def default_setup(self):
         pass
