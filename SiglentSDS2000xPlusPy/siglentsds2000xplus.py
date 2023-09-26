@@ -2,6 +2,20 @@ import time
 import vxi11
 from enum import Enum
 
+class SiglentSDS2000XChannel(Enum):
+    C1 = "C1"
+    C2 = "C2"
+    C3 = "C3"
+    C4 = "C4"
+
+class SiglentSDSTriggerStatus(Enum):
+    ARM = "Arm"
+    READY = "Ready"
+    AUTO = "Auto"
+    TRIGD = "Trig'd"
+    STOP = "Stop"
+    ROLL = "Roll"
+
 class SiglentWaveformWidth(Enum):
     BYTE = "BYTE"
     WORD = "WORD"
@@ -27,6 +41,19 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         """
         return self.ask(message, *args, **kwargs)
     
+    def query_raw(self, message, *args, **kwargs):
+        """
+        Write a message to the scope and read a (binary) answer.
+
+        This is the slightly modified version of :py:meth:`vxi11.Instrument.ask_raw()`.
+        It takes a command message string and returns the answer as bytes.
+
+        :param str message: The SCPI command to send to the scope.
+        :return: Data read from the device
+        """
+        data = message.encode('utf-8')
+        return self.ask_raw(data, *args, **kwargs)
+    
     @property
     def idn(self):
         """The command query identifies the instrument type and software version. The 
@@ -36,22 +63,6 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         :return: Siglent Technologies,<model>,<serial_number>,<firmware>
         """
         return self.query("*IDN?")
-    
-    @property
-    def trigger_status(self):
-        """The command query returns the current state of the trigger.
-
-        :return: str
-                    Returns either "Arm", "Ready", "Auto", "Trig'd", "Stop", "Roll"
-        """
-        return self.query(":TRIGger:STATus?")
-    
-    @property
-    def waveform_preamble(self):
-        """The query returns the parameters of the source using by the command 
-        :WAVeform:SOURce.
-        """
-        return self.query(":WAVeform:PREamble?")
     
     @property
     def timebase_scale(self) -> float:
@@ -84,6 +95,20 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
     def memory_depth(self, mdepth: int):
         mdepth = min(self.memory_depth_values, key=lambda x:abs(x-mdepth))
         self.write(":ACQuire:MDEPth {}".format(mdepth))
+    
+    def get_trigger_status(self):
+        """The command query returns the current state of the trigger.
+
+        :return: str
+                    Returns either "Arm", "Ready", "Auto", "Trig'd", "Stop", "Roll"
+        """
+        return self.query(":TRIGger:STATus?")
+    
+    def get_waveform_preamble(self):
+        """The query returns the parameters of the source using by the command 
+        :WAVeform:SOURce.
+        """
+        return self.query_raw(":WAVeform:PREamble?")
     
     def autosetup(self):
         """ This command attempts to automatically adjust the trigger, vertical, and 
@@ -206,9 +231,30 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
                 return SiglentWaveformWidth.WORD
 
     def arm(self):
-        '''Sets up the acquisition signal to single
-        '''
+        """Sets up the trigger signal to single
+        """
+        
         self.set_single_trigger()
+        self.query("*OPC?")
+
+    def capture(self, src_channel : SiglentSDS2000XChannel):
+        """_summary_
+
+        :param src_channel: _description_
+        """
+        while True:
+            res = self.get_trigger_status()
+            if res == SiglentSDSTriggerStatus.STOP.value:
+                break
+
+        # Send command that specifies the source waveform to be transferred
+        self.write(":WAVeform:SOURce {}".format(src_channel.value))
+        data = self.query_raw(":WAVeform:DATA?")
+        # Get the parameters of the source 
+        params = self.get_waveform_preamble()
+        params = params[11:]
+        print(params)
+
 
 
     def default_setup(self):

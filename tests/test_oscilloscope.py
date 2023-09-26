@@ -1,5 +1,5 @@
 import unittest
-from SiglentSDS2000xPlusPy.siglentsds2000xplus import SiglentSDS2000XPlus, SiglentWaveformWidth
+from SiglentSDS2000xPlusPy.siglentsds2000xplus import *
 
 HOST = ''
 
@@ -75,6 +75,10 @@ class TestSDS2000X(unittest.TestCase):
     
         self.scope.set_waveform_format_width(SiglentWaveformWidth.BYTE)
         self.assertEqual(self.scope.get_waveform_format_width().value, "BYTE")
+
+    def test_capture(self):
+        self.scope.arm()
+        self.scope.capture(SiglentSDS2000XChannel.C1)
 
 
 if __name__ == '__main__':
