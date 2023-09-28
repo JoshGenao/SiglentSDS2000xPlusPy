@@ -1,5 +1,7 @@
 import time
 import vxi11
+import struct
+import numpy as np
 from enum import Enum
 
 class SiglentSDS2000XChannel(Enum):
@@ -23,6 +25,8 @@ class SiglentWaveformWidth(Enum):
 
 class SiglentSDS2000XPlus(vxi11.Instrument):
     _name = "Siglent SDS2000X Plus"
+    center_code = 127
+    full_code = 256
 
     def __init__(self, host, *args, **kwargs) -> None:
         super(SiglentSDS2000XPlus, self).__init__(host, *args, **kwargs)
@@ -108,7 +112,19 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         """The query returns the parameters of the source using by the command 
         :WAVeform:SOURce.
         """
-        return self.query_raw(":WAVeform:PREamble?")
+        params = self.query_raw(":WAVeform:PREamble?")
+        params = params[11:]
+        total_points = struct.unpack('i', params[116:120])[0]
+        probe = struct.unpack('f', params[328:332])[0]
+        vdiv = struct.unpack('f', params[156:160])[0] * probe
+        voffset = struct.unpack('f', params[160:164])[0] * probe
+        code_per_div = struct.unpack('f', params[164:168])[0] * probe
+        timebase = struct.unpack('h', params[324:326])[0]
+        delay = struct.unpack('d', params[180:188])[0]
+        interval = struct.unpack('f', params[176:180])[0]
+
+        return (total_points, vdiv, voffset, code_per_div, timebase, delay, interval, delay)
+
     
     def autosetup(self):
         """ This command attempts to automatically adjust the trigger, vertical, and 
@@ -229,6 +245,19 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
                 return SiglentWaveformWidth.BYTE
             case "WORD":
                 return SiglentWaveformWidth.WORD
+            
+    def calculate_voltage(self, x, vdiv, voffset, code_per_div):
+        if x > self.center_code:
+            x -= self.full_code
+
+        return x * (vdiv/code_per_div) - voffset
+
+    def convert_to_voltage(self, raw_array) -> np.ndarray:
+        # Get the parameters of the source 
+        total_points, vdiv, voffset, code_per_div, timebase, delay, interval, delay = self.get_waveform_preamble()
+        vect_voltage = np.vectorize(self.calculate_voltage)
+
+        return vect_voltage(raw_array, vdiv, voffset, code_per_div)
 
     def arm(self):
         """Sets up the trigger signal to single
@@ -250,10 +279,37 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         # Send command that specifies the source waveform to be transferred
         self.write(":WAVeform:SOURce {}".format(src_channel.value))
         data = self.query_raw(":WAVeform:DATA?")
-        # Get the parameters of the source 
-        params = self.get_waveform_preamble()
-        params = params[11:]
-        print(params)
+        data = data[11:-2]  # eliminate header and remove last two bytes
+
+        try:
+            trace = np.frombuffer(data, dtype=np.byte)
+            self._last_trace = self.convert_to_voltage(trace)
+        except Exception as e:
+            print(e)
+            
+        return self._last_trace
+
+    def capture_raw(self, src_channel : SiglentSDS2000XChannel):
+        """_summary_
+
+        :param src_channel: _description_
+        """
+        while True:
+            res = self.get_trigger_status()
+            if res == SiglentSDSTriggerStatus.STOP.value:
+                break
+
+        # Send command that specifies the source waveform to be transferred
+        self.write(":WAVeform:SOURce {}".format(src_channel.value))
+        data = self.query_raw(":WAVeform:DATA?")
+        data = data[11:-2]  # eliminate header and remove last two bytes
+        try:
+            self._last_trace = np.frombuffer(data, dtype=np.byte)
+        except Exception as e:
+            print(e)
+
+        return self._last_trace
+        
 
 
 
