@@ -79,6 +79,7 @@ class TestSDS2000X(unittest.TestCase):
     def test_capture(self):
         self.scope.arm()
         self.scope.capture(SiglentSDS2000XChannel.C1)
+        
 
 
 if __name__ == '__main__':
