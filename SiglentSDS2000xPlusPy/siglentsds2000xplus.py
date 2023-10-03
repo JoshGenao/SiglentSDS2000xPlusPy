@@ -195,6 +195,54 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
                     Returns either "SINGle", "NORMal", "AUTO", "FTRIG"
         """
         return self.query(":TRIGger:MODE?")
+    
+    def set_rising_edge_trigger(self):
+        """The command sets the slope of the slope trigger to Rising Edge
+
+        :return: Nothing
+        """
+        self.write(":TRIGger:SLOPe:SLOPe RISing")
+
+    def set_falling_edge_trigger(self):
+        """The command sets the slope of the slope trigger to Falling Edge
+
+        :return: Nothing
+        """
+        self.write(":TRIGger:SLOPe:SLOPe FALLing")
+
+    def set_alternate_edge_trigger(self):
+        """The command sets the slope of the slope trigger to Falling Edge
+
+        :return: Nothing
+        """
+        self.write(":TRIGger:SLOPe:SLOPe ALTernate")
+
+    def get_edge_trigger(self):
+        """The query returns the current slope of the slope trigger
+
+        :return: str
+                    Returns either "RISing", "FALLing", "ALTernate"
+        """
+        return self.query(":TRIGger:SLOPe:SLOPe?")
+
+    def set_trigger_source(self, trig_channel: SiglentSDS2000XChannel):
+        """The query returns the current trigger source of the slope trigger
+
+        :param trig_channel: Trigger source
+        """
+        self.write(":TRIGger:SLOPe:SOURce {}".format(trig_channel.value))
+
+    def set_trigger_edge_level(self, level : float):
+        """The command sets the trigger level of the edge trigger
+
+        :param level: Trigger level
+        """
+
+        """
+        TODO: trigger level needs to be between:
+        [-4.1*vertical_scale-vertical_offset, 4.1*vertical_scale-vertical_offset]
+        """
+        self.write(":TRIGger:EDGE:LEVel {}".format(str(level)))
 
     def channel_visibile(self, channel : int, visible : bool = True):
         """The command is used to whether display the waveform of the specified 
