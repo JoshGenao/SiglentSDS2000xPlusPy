@@ -135,6 +135,11 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         :return: Nothing
         """
         self.write(":AUToset")
+
+    def set_trigger_run(self):
+        """The command sets the oscilloscope to run
+        """
+        self.write(":TRIGger:RUN")
     
     def set_single_trigger(self):
         """The command sets the mode of the trigger.
@@ -244,6 +249,33 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         """
         self.write(":TRIGger:EDGE:LEVel {}".format(str(level)))
 
+    def save_setup(self, file_location : str):
+        """This command saves the current settings to internal or external memory 
+        locations.
+
+        Users can recall from local,net storage or U-disk according to requirements
+
+        :param file_location: string of path with an extension “.xml”. 
+        """
+        if file_location.endswith(".xml"):
+            self.write(':SAVE:SETup EXTernal,”{}”'.format(file_location))
+        else:
+            raise ValueError("Add in string that contains .xml")
+
+
+    def recall_setup(self, file_location : str):
+        """This command will recall the saved settings file from external sources.
+        
+        Users can recall from local,net storage or U-disk according to requirements
+
+        :param file_location: string of path with an extension “.xml”. 
+        """
+        if file_location.endswith(".xml"):
+            self.write(':RECall:SETup EXTernal,”{}”'.format(file_location))
+        else:
+            raise ValueError("Add in string that contains .xml")
+
+
     def channel_visibile(self, channel : int, visible : bool = True):
         """The command is used to whether display the waveform of the specified 
         channel or not.
@@ -312,6 +344,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
         """
         
         self.set_single_trigger()
+        self.set_trigger_run()
         self.query("*OPC?")
 
     def capture(self, src_channel : SiglentSDS2000XChannel):
@@ -334,7 +367,7 @@ class SiglentSDS2000XPlus(vxi11.Instrument):
             self._last_trace = self.convert_to_voltage(trace)
         except Exception as e:
             print(e)
-            
+
         return self._last_trace
 
     def capture_raw(self, src_channel : SiglentSDS2000XChannel):
